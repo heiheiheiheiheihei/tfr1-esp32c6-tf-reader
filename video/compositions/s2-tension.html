@@ -1,0 +1,231 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+    #s2-stage {
+      position: absolute;
+      inset: 0;
+    }
+    #s2-kicker {
+      position: absolute;
+      left: 120px;
+      top: 190px;
+      font-family: var(--sc);
+      font-weight: 400;
+      font-size: 64px;
+      letter-spacing: 0.02em;
+      color: var(--dim);
+    }
+    #s2-h {
+      position: absolute;
+      left: 120px;
+      top: 272px;
+      font-family: var(--sc);
+      font-weight: 700;
+      font-size: 124px;
+      line-height: 1.06;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+      text-indent: -0.06em;
+      white-space: nowrap;
+    }
+    #s2-caret {
+      display: inline-block;
+      width: 12px;
+      height: 96px;
+      margin-left: 22px;
+      background: var(--accent);
+      vertical-align: -8px;
+      opacity: 0;
+    }
+    #s2-sub {
+      position: absolute;
+      left: 124px;
+      top: 468px;
+      font-family: var(--mono);
+      font-size: 28px;
+      letter-spacing: 0.01em;
+      color: var(--dim);
+      white-space: nowrap;
+    }
+    #s2-sub b {
+      color: var(--ink);
+      font-weight: 400;
+    }
+    #s2-claim {
+      position: absolute;
+      left: 120px;
+      top: 620px;
+      font-family: var(--sc);
+      font-weight: 500;
+      font-size: 62px;
+      color: var(--ink);
+    }
+    #s2-claim s {
+      text-decoration: none;
+      color: var(--red);
+      font-weight: 700;
+    }
+
+    #s2-sheet {
+      position: absolute;
+      left: 1140px;
+      top: 196px;
+      width: 660px;
+    }
+    #s2-cap {
+      font-family: var(--mono);
+      font-size: 22px;
+      letter-spacing: 0.2em;
+      color: rgba(124, 151, 168, 0.85);
+      padding-bottom: 14px;
+    }
+    .s2-row {
+      height: 92px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid rgba(53, 224, 255, 0.26);
+    }
+    .s2-row:last-child {
+      border-bottom: 1px solid rgba(53, 224, 255, 0.26);
+    }
+    .s2-row span {
+      font-family: var(--mono);
+      font-size: 26px;
+      letter-spacing: 0.06em;
+      color: var(--dim);
+    }
+    .s2-row b {
+      font-family: var(--mono);
+      font-weight: 400;
+      font-size: 30px;
+      color: var(--ink);
+    }
+    .s2-x {
+      position: relative;
+      width: 42px;
+      height: 42px;
+      display: inline-block;
+    }
+    .s2-x i {
+      position: absolute;
+      left: 1px;
+      top: 19px;
+      width: 40px;
+      height: 5px;
+      background: var(--red);
+    }
+    .s2-x i:first-child {
+      transform: rotate(45deg);
+    }
+    .s2-x i:last-child {
+      transform: rotate(-45deg);
+    }
+    #s2-note {
+      margin-top: 22px;
+      font-family: var(--mono);
+      font-size: 22px;
+      line-height: 1.5;
+      color: rgba(124, 151, 168, 0.9);
+    }
+  </style>
+
+  <div id="root" data-composition-id="s2" data-width="1920" data-height="1080">
+    <div class="bg"></div>
+    <div class="grid"></div>
+    <div class="vig"></div>
+
+    <div id="s2-stage">
+      <div id="s2-kicker" class="clip" data-start="0.1" data-duration="4.4">插上电脑</div>
+      <div id="s2-h" class="clip" data-start="0.42" data-duration="4.08">
+        什么也没发生<span id="s2-caret"></span>
+      </div>
+      <div id="s2-sub" class="clip" data-start="1.2" data-duration="3.3">
+        <b>/dev/ttyACM0</b> · 电脑只看见一个串口
+      </div>
+
+      <div id="s2-sheet" class="clip" data-start="2.0" data-duration="2.5">
+        <div id="s2-cap">ESP32-C6 · USB 外设</div>
+        <div class="s2-row" id="s2-r1"><span>USB SERIAL/JTAG</span><b>12 Mbps</b></div>
+        <div class="s2-row" id="s2-r2"><span>USB OTG</span><b class="s2-x"><i></i><i></i></b></div>
+        <div class="s2-row" id="s2-r3"><span>MASS STORAGE</span><b class="s2-x"><i></i><i></i></b></div>
+      </div>
+
+      <div id="s2-claim" class="clip" data-start="2.9" data-duration="1.6">
+        当不了 <s>U 盘</s>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+
+    tl.fromTo(
+      "#s2-kicker",
+      { opacity: 0, filter: "blur(5px)" },
+      { opacity: 1, filter: "blur(0px)", duration: 0.2, ease: "power4.out" },
+      0.1,
+    );
+    tl.fromTo(
+      "#s2-h",
+      { clipPath: "inset(0 100% 0 0)" },
+      { clipPath: "inset(0 0% 0 0)", duration: 0.44, ease: "expo.out" },
+      0.42,
+    );
+    // four blinks, then the caret stays: it is waiting for a device that never appears
+    tl.to("#s2-caret", { opacity: 1, duration: 0.02 }, 1.42);
+    tl.to("#s2-caret", { opacity: 0.1, duration: 0.24, repeat: 3, yoyo: true }, 1.5);
+    tl.fromTo(
+      "#s2-sub",
+      { opacity: 0, filter: "blur(6px)" },
+      { opacity: 1, filter: "blur(0px)", duration: 0.22, ease: "power4.out" },
+      1.2,
+    );
+
+    tl.fromTo("#s2-cap", { opacity: 0 }, { opacity: 1, duration: 0.2 }, 2.0);
+    tl.fromTo(
+      "#s2-r1",
+      { opacity: 0, x: 34 },
+      { opacity: 1, x: 0, duration: 0.36, ease: "expo.out" },
+      2.06,
+    );
+    tl.fromTo(
+      "#s2-r2",
+      { opacity: 0, x: 34 },
+      { opacity: 1, x: 0, duration: 0.36, ease: "expo.out" },
+      2.3,
+    );
+    tl.fromTo(
+      "#s2-r3",
+      { opacity: 0, x: 34 },
+      { opacity: 1, x: 0, duration: 0.36, ease: "expo.out" },
+      2.54,
+    );
+    // the two crosses land one frame after their row, slightly oversized then snapped
+    tl.fromTo(
+      "#s2-r2 .s2-x",
+      { scale: 1.7, opacity: 0 },
+      { scale: 1, opacity: 1, duration: 0.26, ease: "back.out(1.6)" },
+      2.36,
+    );
+    tl.fromTo(
+      "#s2-r3 .s2-x",
+      { scale: 1.7, opacity: 0 },
+      { scale: 1, opacity: 1, duration: 0.26, ease: "back.out(1.6)" },
+      2.6,
+    );
+
+    tl.fromTo(
+      "#s2-claim",
+      { opacity: 0, filter: "blur(9px)" },
+      { opacity: 1, filter: "blur(0px)", duration: 0.26, ease: "power4.out" },
+      2.9,
+    );
+
+    window.__timelines["s2"] = tl;
+  </script>
+</template>

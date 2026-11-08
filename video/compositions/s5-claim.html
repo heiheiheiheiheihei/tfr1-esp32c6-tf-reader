@@ -1,0 +1,156 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+    #s5-stage {
+      position: absolute;
+      inset: 0;
+    }
+    #s5-l1 {
+      position: absolute;
+      left: 120px;
+      top: 168px;
+      font-family: var(--sc);
+      font-weight: 700;
+      font-size: 116px;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      color: var(--ink);
+      text-indent: -0.06em;
+      white-space: nowrap;
+    }
+    #s5-l2 {
+      position: absolute;
+      left: 120px;
+      top: 316px;
+      font-family: var(--sc);
+      font-weight: 700;
+      font-size: 116px;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      color: var(--ink);
+      text-indent: -0.06em;
+      white-space: nowrap;
+    }
+    #s5-l2 b {
+      color: var(--dim);
+      font-weight: 700;
+    }
+    #s5-rule {
+      position: absolute;
+      left: 124px;
+      top: 500px;
+      width: 1080px;
+      height: 1px;
+      background: rgba(53, 224, 255, 0.28);
+      transform-origin: left center;
+    }
+    .s5-lim {
+      position: absolute;
+      left: 124px;
+      font-family: var(--mono);
+      font-size: 28px;
+      letter-spacing: 0.01em;
+      color: rgba(124, 151, 168, 0.98);
+      white-space: nowrap;
+    }
+    .s5-lim i {
+      font-style: normal;
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      margin-right: 22px;
+      vertical-align: 2px;
+      background: rgba(255, 95, 86, 0.85);
+    }
+    #s5-lim1 {
+      top: 542px;
+    }
+    #s5-lim2 {
+      top: 602px;
+    }
+    #s5-lim3 {
+      top: 662px;
+    }
+    #s5-turn {
+      position: absolute;
+      left: 120px;
+      top: 790px;
+      font-family: var(--sc);
+      font-weight: 700;
+      font-size: 84px;
+      letter-spacing: -0.01em;
+      color: var(--accent);
+    }
+    #s5-turn em {
+      font-style: normal;
+      color: var(--ink);
+    }
+  </style>
+
+  <div id="root" data-composition-id="s5" data-width="1920" data-height="1080">
+    <div class="bg"></div>
+    <div class="grid"></div>
+    <div class="vig"></div>
+
+    <div id="s5-stage">
+      <div id="s5-l1" class="clip" data-start="0.2" data-duration="5.8">一个一时兴起的小玩意</div>
+      <div id="s5-l2" class="clip" data-start="1.6" data-duration="4.4">
+        大概率 <b>没什么实际意义</b>
+      </div>
+
+      <div id="s5-rule" class="clip" data-start="2.9" data-duration="3.1"></div>
+
+      <div class="s5-lim clip" id="s5-lim1" data-start="3.05" data-duration="2.95">
+        <i></i>需要 Linux + sudo + nbd 内核模块
+      </div>
+      <div class="s5-lim clip" id="s5-lim2" data-start="3.2" data-duration="2.8">
+        <i></i>mount 约 7 s，umount 约 37 s（16 GB FAT32）
+      </div>
+      <div class="s5-lim clip" id="s5-lim3" data-start="3.35" data-duration="2.65">
+        <i></i>只验证过 FAT32；顺序读 0.21 MiB/s
+      </div>
+
+      <div id="s5-turn" class="clip" data-start="4.45" data-duration="1.55">
+        但它<em>真的能挂载</em>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+
+    tl.fromTo(
+      "#s5-l1",
+      { clipPath: "inset(0 100% 0 0)" },
+      { clipPath: "inset(0 0% 0 0)", duration: 0.5, ease: "expo.out" },
+      0.2,
+    );
+    tl.fromTo(
+      "#s5-l2",
+      { clipPath: "inset(0 100% 0 0)" },
+      { clipPath: "inset(0 0% 0 0)", duration: 0.5, ease: "expo.out" },
+      1.6,
+    );
+    tl.fromTo("#s5-rule", { scaleX: 0 }, { scaleX: 1, duration: 0.5, ease: "power2.inOut" }, 2.9);
+    ["#s5-lim1", "#s5-lim2", "#s5-lim3"].forEach((sel, i) => {
+      tl.fromTo(
+        sel,
+        { opacity: 0, x: 24 },
+        { opacity: 1, x: 0, duration: 0.3, ease: "expo.out" },
+        3.05 + i * 0.15,
+      );
+    });
+    tl.fromTo(
+      "#s5-turn",
+      { opacity: 0, filter: "blur(10px)" },
+      { opacity: 1, filter: "blur(0px)", duration: 0.3, ease: "power4.out" },
+      4.45,
+    );
+
+    window.__timelines["s5"] = tl;
+  </script>
+</template>

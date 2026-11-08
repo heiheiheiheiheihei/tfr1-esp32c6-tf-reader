@@ -1,0 +1,309 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+    #s4c-stage {
+      position: absolute;
+      inset: 0;
+    }
+    #s4c-term {
+      position: absolute;
+      left: 120px;
+      top: 230px;
+      width: 1040px;
+      height: 452px;
+      background: rgba(1, 6, 11, 0.94);
+      border: 1px solid rgba(53, 224, 255, 0.24);
+      padding: 32px 36px;
+      overflow: hidden;
+    }
+    #s4c-term-top {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 2px;
+      background: rgba(53, 224, 255, 0.55);
+    }
+    .s4c-ln {
+      font-family: var(--mono);
+      font-size: 30px;
+      line-height: 1.72;
+      color: var(--dim);
+      white-space: pre;
+    }
+    .s4c-ln.cmd {
+      color: var(--ink);
+    }
+    .s4c-ln.hi {
+      color: var(--accent);
+    }
+
+    /* the board's own screen, 172x320 at 2.2x */
+    #s4c-link {
+      position: absolute;
+      left: 1252px;
+      top: 156px;
+      width: 378px;
+      height: 704px;
+      overflow: hidden;
+      border: 1px solid rgba(53, 224, 255, 0.36);
+    }
+    #s4c-link img {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 378px;
+      height: 704px;
+    }
+    #s4c-host {
+      opacity: 0;
+    }
+    #s4c-link-cap {
+      position: absolute;
+      left: 1252px;
+      top: 884px;
+      font-family: var(--mono);
+      font-size: 21px;
+      letter-spacing: 0.08em;
+      color: rgba(124, 151, 168, 0.95);
+    }
+
+    /* the same screen, hero size, showing the card's contents */
+    #s4c-files {
+      position: absolute;
+      left: 120px;
+      top: 60px;
+      width: 516px;
+      height: 960px;
+      overflow: hidden;
+      border: 1px solid rgba(53, 224, 255, 0.4);
+    }
+    #s4c-files img {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 516px;
+      height: 960px;
+    }
+    #s4c-cap {
+      position: absolute;
+      left: 124px;
+      top: 700px;
+      font-family: var(--sc);
+      font-weight: 500;
+      font-size: 46px;
+      color: var(--ink);
+    }
+    #s4c-cap2 {
+      position: absolute;
+      left: 720px;
+      top: 180px;
+      width: 1000px;
+      font-family: var(--sc);
+      font-weight: 700;
+      font-size: 76px;
+      line-height: 1.24;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+    }
+    #s4c-cap2 em {
+      font-style: normal;
+      color: var(--accent);
+    }
+    #s4c-cap2 span {
+      display: block;
+      margin-top: 26px;
+      font-family: var(--mono);
+      font-weight: 400;
+      font-size: 24px;
+      line-height: 1.7;
+      letter-spacing: 0.02em;
+      color: rgba(124, 151, 168, 0.95);
+    }
+
+    #s4c-photo {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+    }
+    #s4c-photo img {
+      position: absolute;
+      left: 1220px;
+      top: -48px;
+      width: 699px;
+      height: 1352px;
+      -webkit-mask-image: linear-gradient(to right, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.55) 14%, #000 42%);
+      mask-image: linear-gradient(to right, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.55) 14%, #000 42%);
+    }
+    #s4c-photo::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      background: linear-gradient(
+        to right,
+        rgba(5, 10, 18, 0.94) 0%,
+        rgba(5, 10, 18, 0.55) 34%,
+        rgba(5, 10, 18, 0) 62%
+      );
+    }
+    #s4c-photo-cap {
+      position: absolute;
+      z-index: 2;
+      left: 120px;
+      top: 760px;
+      width: 760px;
+      font-family: var(--sc);
+      font-weight: 700;
+      font-size: 66px;
+      line-height: 1.3;
+      color: var(--ink);
+    }
+    #s4c-photo-cap span {
+      display: block;
+      margin-top: 20px;
+      font-family: var(--mono);
+      font-weight: 400;
+      font-size: 22px;
+      letter-spacing: 0.1em;
+      color: rgba(124, 151, 168, 0.95);
+    }
+  </style>
+
+  <div id="root" data-composition-id="s4c" data-width="1920" data-height="1080">
+    <div class="bg"></div>
+
+    <div id="s4c-stage">
+      <div id="s4c-term" class="clip" data-start="0" data-duration="4.0">
+        <div id="s4c-term-top"></div>
+        <div class="s4c-ln dim" id="s4c-h1">$ ./scripts/run.sh</div>
+        <div class="s4c-ln dim" id="s4c-h2">[nbd] attached /dev/nbd0  14.84 GiB</div>
+        <div class="s4c-ln dim" id="s4c-h3">[nbd] export /dev/nbd0  sector size 512</div>
+        <div class="s4c-ln cmd" id="s4c-t1"></div>
+        <div class="s4c-ln dim" id="s4c-t2"></div>
+        <div class="s4c-ln cmd" id="s4c-t3"></div>
+        <div class="s4c-ln hi" id="s4c-t4"></div>
+      </div>
+
+      <div id="s4c-link" class="clip" data-start="0.15" data-duration="3.85">
+        <img class="lcd" id="s4c-ready" src="assets/img/ui-link.png" alt="TFR-1 USB LINK 页 READY" />
+        <img class="lcd" id="s4c-host" src="assets/img/ui-host.png" alt="TFR-1 USB LINK 页 ONLINE" />
+        <div class="scan"></div>
+      </div>
+      <div id="s4c-link-cap" class="clip" data-start="0.4" data-duration="3.6">
+        READY · NBD /dev/nbd0
+      </div>
+      <div id="s4c-cap" class="clip" data-start="2.35" data-duration="1.65">
+        <span id="s4c-cap-txt">PC 一挂上，板子这边就切成 ONLINE</span>
+      </div>
+
+      <div id="s4c-files" class="clip" data-start="4.0" data-duration="4.0">
+        <img class="lcd" src="assets/img/ui-files.png" alt="TFR-1 FILES 页" />
+        <div class="scan"></div>
+      </div>
+      <div id="s4c-cap2" class="clip" data-start="4.15" data-duration="3.85">
+        卡里的东西<br /><em>PC 上照常是文件夹</em>
+        <span>ls /mnt/tfreader → TFR_CODE</span>
+      </div>
+
+      <div id="s4c-photo" class="clip" data-start="5.6" data-duration="2.4" data-layout-allow-overflow>
+        <img id="s4c-photo-img" class="shot" src="assets/img/photo-files.jpg" alt="TFR-1 实拍" />
+        <div id="s4c-photo-cap">
+          这块板真的在桌面上
+          <span>ESP32-C6-LCD-1.47 · 172 × 320</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+
+    function typeLine(sel, text, start, perChar) {
+      const el = document.querySelector(sel);
+      const o = { i: 0 };
+      el.textContent = "";
+      tl.to(
+        o,
+        {
+          i: text.length,
+          duration: Math.max(0.12, perChar * text.length),
+          ease: "none",
+          onUpdate: () => {
+            el.textContent = text.slice(0, Math.round(o.i));
+          },
+        },
+        start,
+      );
+    }
+
+    tl.fromTo("#s4c-term", { opacity: 0 }, { opacity: 1, duration: 0.24 }, 0);
+    tl.fromTo(
+      ["#s4c-h1", "#s4c-h2", "#s4c-h3"],
+      { opacity: 0.55 },
+      { opacity: 0.55, duration: 0.01 },
+      0,
+    );
+    typeLine("#s4c-t1", "$ ./scripts/mount.sh", 0.12, 0.03);
+    typeLine("#s4c-t2", "/mnt/tfreader /dev/nbd0p1 vfat rw,uid=1000,gid=1000", 0.62, 0.012);
+    typeLine("#s4c-t3", "$ ls /mnt/tfreader", 1.55, 0.03);
+    typeLine("#s4c-t4", "TFR_CODE", 2.1, 0.06);
+
+    tl.fromTo(
+      "#s4c-link",
+      { opacity: 0, y: 30 },
+      { opacity: 1, y: 0, duration: 0.4, ease: "expo.out" },
+      0.15,
+    );
+    // the real state change: PC takes the card, the board goes ONLINE
+    tl.to("#s4c-ready", { opacity: 0, duration: 0.14 }, 2.2);
+    tl.to("#s4c-host", { opacity: 1, duration: 0.14 }, 2.2);
+    tl.to("#s4c-link-cap", { opacity: 0, duration: 0.14 }, 2.2);
+    tl.fromTo(
+      "#s4c-cap",
+      { opacity: 0, filter: "blur(6px)" },
+      { opacity: 1, filter: "blur(0px)", duration: 0.24, ease: "power4.out" },
+      2.35,
+    );
+
+    // out to the folder the PC now sees
+    tl.to(["#s4c-term", "#s4c-link", "#s4c-cap"], { opacity: 0, duration: 0.26 }, 3.9);
+    tl.fromTo(
+      "#s4c-files",
+      { opacity: 0, y: 40 },
+      { opacity: 1, y: 0, duration: 0.46, ease: "expo.out" },
+      4.0,
+    );
+    tl.fromTo(
+      "#s4c-cap2",
+      { opacity: 0, filter: "blur(7px)" },
+      { opacity: 1, filter: "blur(0px)", duration: 0.26, ease: "power4.out" },
+      4.15,
+    );
+    tl.to(["#s4c-files", "#s4c-cap2"], { opacity: 0, duration: 0.22 }, 5.5);
+
+    // match cut: the same FILES page, now on the desk
+    tl.fromTo("#s4c-photo", { opacity: 0 }, { opacity: 1, duration: 0.14 }, 5.6);
+    tl.fromTo(
+      "#s4c-photo-img",
+      { scale: 1.06 },
+      { scale: 1.14, duration: 2.4, ease: "none" },
+      5.6,
+    );
+    tl.fromTo(
+      "#s4c-photo-cap",
+      { opacity: 0, y: 22 },
+      { opacity: 1, y: 0, duration: 0.4, ease: "expo.out" },
+      6.0,
+    );
+
+    window.__timelines["s4c"] = tl;
+  </script>
+</template>

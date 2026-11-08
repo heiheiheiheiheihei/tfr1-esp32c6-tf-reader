@@ -1,0 +1,256 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+    #s4a-stage {
+      position: absolute;
+      inset: 0;
+    }
+
+    /* 32 x 16 cells: one dot per sector, 24 px pitch */
+    #s4a-matrix {
+      position: absolute;
+      left: 576px;
+      top: 248px;
+      width: 768px;
+      height: 384px;
+      background-image: radial-gradient(
+        circle,
+        rgba(53, 224, 255, 0.62) 2.6px,
+        rgba(0, 0, 0, 0) 3.4px
+      );
+      background-size: 24px 24px;
+      transform-origin: 50% 50%;
+    }
+    #s4a-cell {
+      position: absolute;
+      left: 384px;
+      top: 192px;
+      width: 24px;
+      height: 24px;
+      background: var(--accent);
+      transform-origin: 50% 50%;
+    }
+
+    #s4a-cap {
+      position: absolute;
+      left: 120px;
+      top: 104px;
+      font-family: var(--sc);
+      font-weight: 700;
+      font-size: 60px;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+    }
+    #s4a-cap b {
+      color: var(--accent);
+      font-weight: 700;
+    }
+    #s4a-count {
+      position: absolute;
+      left: 600px;
+      top: 700px;
+      font-family: var(--mono);
+      font-size: 26px;
+      letter-spacing: 0.02em;
+      color: var(--dim);
+    }
+    #s4a-count b {
+      font-size: 54px;
+      color: var(--ink);
+      font-weight: 400;
+      letter-spacing: 0.01em;
+    }
+
+    /* ---- the real framebuffer, 172 x 320 at 3x ---- */
+    #s4a-lcd {
+      position: absolute;
+      left: 150px;
+      top: 60px;
+      width: 516px;
+      height: 960px;
+      overflow: hidden;
+      border: 1px solid rgba(53, 224, 255, 0.4);
+    }
+    #s4a-lcd img {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 516px;
+      height: 960px;
+    }
+    #s4a-side {
+      position: absolute;
+      left: 748px;
+      top: 148px;
+      width: 1000px;
+    }
+    .s4a-row {
+      display: flex;
+      align-items: baseline;
+      height: 84px;
+      border-bottom: 1px solid rgba(53, 224, 255, 0.2);
+    }
+    .s4a-row span {
+      width: 190px;
+      font-family: var(--mono);
+      font-size: 22px;
+      letter-spacing: 0.16em;
+      color: var(--dim);
+    }
+    .s4a-row b {
+      font-family: var(--mono);
+      font-weight: 400;
+      font-size: 34px;
+      color: var(--ink);
+    }
+    #s4a-cap2 {
+      position: absolute;
+      left: 748px;
+      top: 640px;
+      font-family: var(--sc);
+      font-weight: 500;
+      font-size: 52px;
+      color: var(--ink);
+    }
+    #s4a-cap2 em {
+      font-style: normal;
+      color: var(--accent);
+    }
+    #s4a-note2 {
+      position: absolute;
+      left: 748px;
+      top: 730px;
+      font-family: var(--mono);
+      font-size: 22px;
+      line-height: 1.6;
+      color: rgba(124, 151, 168, 0.95);
+    }
+  </style>
+
+  <div id="root" data-composition-id="s4a" data-width="1920" data-height="1080">
+    <div class="bg"></div>
+    <div class="grid"></div>
+    <div class="vig"></div>
+
+    <div id="s4a-stage">
+      <div id="s4a-cap" class="clip" data-start="0.35" data-duration="2.65">
+        一个扇区 <b>512 字节</b>
+      </div>
+      <div id="s4a-matrix" class="clip" data-start="0" data-duration="3.1">
+        <div id="s4a-cell"></div>
+      </div>
+      <div id="s4a-count" class="clip" data-start="1.55" data-duration="1.45">
+        <b id="s4a-count-num">0</b> 个这样的方块
+      </div>
+
+      <div id="s4a-lcd" class="clip" data-start="3.0" data-duration="3.0">
+        <div>
+          <img class="lcd" src="assets/img/ui-card.png" alt="TFR-1 CARD 页真机截图" />
+          <div class="scan"></div>
+        </div>
+      </div>
+
+      <div id="s4a-side" class="clip" data-start="3.35" data-duration="2.65">
+        <div class="s4a-row" id="s4a-r1"><span>MODEL</span><b>SC16G</b></div>
+        <div class="s4a-row" id="s4a-r2"><span>FS</span><b>FAT32 · SDHC</b></div>
+        <div class="s4a-row" id="s4a-r3"><span>SIZE</span><b>14.84 GiB</b></div>
+        <div class="s4a-row" id="s4a-r4"><span>BUS</span><b>SPI · 20 MHz</b></div>
+        <div class="s4a-row" id="s4a-r5"><span>SERIAL</span><b>0x59E3BDCB</b></div>
+      </div>
+
+      <div id="s4a-cap2" class="clip" data-start="4.1" data-duration="1.9">
+        板子先把卡<em>读明白</em>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+
+    // the zoom from the previous scene lands here
+    tl.fromTo(
+      "#s4a-matrix",
+      { scale: 2.5, opacity: 0.35 },
+      { scale: 1, opacity: 1, duration: 0.5, ease: "power3.out" },
+      0,
+    );
+    tl.fromTo(
+      "#s4a-cap",
+      { opacity: 0, filter: "blur(6px)" },
+      { opacity: 1, filter: "blur(0px)", duration: 0.24, ease: "power4.out" },
+      0.35,
+    );
+
+    // one sector out of 31 million lights up
+    tl.fromTo(
+      "#s4a-cell",
+      { scale: 0, opacity: 0 },
+      { scale: 1, opacity: 1, duration: 0.3, ease: "back.out(2.2)" },
+      1.0,
+    );
+    tl.to("#s4a-cell", { scale: 6.5, duration: 0.5, ease: "power3.out" }, 1.55);
+    tl.to("#s4a-matrix", { opacity: 0.35, duration: 0.45 }, 1.55);
+    tl.to("#s4a-cell", { scale: 1, duration: 0.42, ease: "power2.inOut" }, 2.25);
+
+    // count the rest of the card
+    const counter = { n: 0 };
+    tl.fromTo(
+      counter,
+      { n: 0 },
+      {
+        n: 31116288,
+        duration: 0.85,
+        ease: "power2.out",
+        onUpdate: () => {
+          document.getElementById("s4a-count-num").textContent = Math.round(
+            counter.n,
+          ).toLocaleString("en-US");
+        },
+      },
+      1.6,
+    );
+    tl.fromTo(
+      "#s4a-count",
+      { opacity: 0, y: 10 },
+      { opacity: 1, y: 0, duration: 0.28, ease: "power2.out" },
+      1.55,
+    );
+
+    // carry that one sector across into the board's own screen
+    tl.to("#s4a-cap", { opacity: 0, duration: 0.2 }, 2.85);
+    tl.to("#s4a-count", { opacity: 0, duration: 0.2 }, 2.85);
+    tl.to(
+      "#s4a-matrix",
+      { x: -560, y: 300, scale: 0.16, opacity: 0, duration: 0.5, ease: "power3.in" },
+      2.9,
+    );
+
+    tl.fromTo(
+      "#s4a-lcd",
+      { opacity: 0, y: 46 },
+      { opacity: 1, y: 0, duration: 0.5, ease: "expo.out" },
+      3.0,
+    );
+    const rows = ["#s4a-r1", "#s4a-r2", "#s4a-r3", "#s4a-r4", "#s4a-r5"];
+    rows.forEach((sel, i) => {
+      tl.fromTo(
+        sel,
+        { opacity: 0, x: 26 },
+        { opacity: 1, x: 0, duration: 0.3, ease: "expo.out" },
+        3.35 + i * 0.1,
+      );
+    });
+    tl.fromTo(
+      "#s4a-cap2",
+      { opacity: 0, filter: "blur(7px)" },
+      { opacity: 1, filter: "blur(0px)", duration: 0.25, ease: "power4.out" },
+      4.1,
+    );
+
+    window.__timelines["s4a"] = tl;
+  </script>
+</template>

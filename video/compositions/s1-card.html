@@ -1,0 +1,239 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+    #s1-stage {
+      position: absolute;
+      inset: 0;
+    }
+    /* ---- the card: a 11:15 microSD drawn in the board's own line language ---- */
+    #s1-card {
+      position: absolute;
+      left: 1120px;
+      top: 252px;
+      width: 366px;
+      height: 498px;
+      z-index: 3;
+    }
+    .s1-shape {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(155deg, #0b1f31 0%, #071320 62%, #08151f 100%);
+      border: 1px solid rgba(53, 224, 255, 0.55);
+      clip-path: polygon(0 0, 86% 0, 100% 13%, 100% 100%, 0 100%);
+      box-shadow: inset 0 0 60px rgba(53, 224, 255, 0.07);
+    }
+    .s1-shape::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        150deg,
+        rgba(255, 255, 255, 0.07) 0%,
+        rgba(255, 255, 255, 0) 34%
+      );
+    }
+    /* 512 dots = 32 x 16: a sample of the 31,116,288 sectors on the card */
+    .s1-dots {
+      position: absolute;
+      left: 40px;
+      top: 92px;
+      width: 286px;
+      height: 143px;
+      background-image: radial-gradient(
+        circle,
+        rgba(53, 224, 255, 0.55) 0.9px,
+        rgba(0, 0, 0, 0) 1.3px
+      );
+      background-size: 8.25px 8.25px;
+      opacity: 0.75;
+    }
+    .s1-pads {
+      position: absolute;
+      left: 36px;
+      bottom: 70px;
+      width: 294px;
+      height: 54px;
+      display: flex;
+      gap: 8px;
+    }
+    .s1-pads i {
+      flex: 1;
+      background: rgba(127, 185, 201, 0.72);
+      clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+    }
+    .s1-badge {
+      position: absolute;
+      left: 33px;
+      top: 32px;
+      font-family: var(--mono);
+      font-size: 20px;
+      letter-spacing: 0.18em;
+      color: rgba(53, 224, 255, 0.85);
+    }
+
+    /* ---- type ---- */
+    .s1-line {
+      position: absolute;
+      left: 120px;
+      font-family: var(--sc);
+      font-weight: 700;
+      font-size: 148px;
+      line-height: 1.06;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+      text-indent: -0.06em;
+    }
+    #s1-l1 {
+      top: 226px;
+    }
+    #s1-l2 {
+      top: 382px;
+    }
+    #s1-strike {
+      position: absolute;
+      left: 407px;
+      top: 458px;
+      width: 444px;
+      height: 9px;
+      background: var(--red);
+      transform-origin: left center;
+      z-index: 4;
+    }
+    #s1-spec {
+      position: absolute;
+      left: 124px;
+      top: 586px;
+      font-family: var(--mono);
+      font-size: 28px;
+      letter-spacing: 0.02em;
+      color: var(--dim);
+      white-space: nowrap;
+    }
+    #s1-spec b {
+      color: var(--ink);
+      font-weight: 400;
+    }
+    #s1-rule {
+      position: absolute;
+      left: 124px;
+      top: 700px;
+      width: 690px;
+      height: 1px;
+      background: rgba(53, 224, 255, 0.3);
+      transform-origin: left center;
+    }
+    #s1-l3 {
+      position: absolute;
+      left: 120px;
+      top: 742px;
+      font-family: var(--sc);
+      font-weight: 500;
+      font-size: 68px;
+      letter-spacing: 0.01em;
+      color: var(--ink);
+    }
+    #s1-l3 b {
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: -0.01em;
+    }
+    #s1-foot {
+      position: absolute;
+      left: 124px;
+      top: 890px;
+      font-family: var(--mono);
+      font-size: 22px;
+      letter-spacing: 0.22em;
+      color: rgba(124, 151, 168, 0.7);
+    }
+  </style>
+
+  <div id="root" data-composition-id="s1" data-width="1920" data-height="1080">
+    <div class="bg"></div>
+    <div class="grid"></div>
+    <div class="vig"></div>
+
+    <div id="s1-stage">
+      <div id="s1-card" class="clip" data-start="0" data-duration="5">
+        <div class="s1-shape">
+          <div class="s1-dots"></div>
+          <div class="s1-pads"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="s1-badge">16 GB</div>
+        </div>
+      </div>
+
+      <div id="s1-l1" class="clip s1-line" data-start="0" data-duration="5">一张 TF 卡</div>
+
+      <div id="s1-l2" class="clip s1-line" data-start="0.55" data-duration="4.45">没有读卡器</div>
+      <div id="s1-strike" class="clip" data-start="1.55" data-duration="3.45" data-layout-allow-occlusion></div>
+
+      <div id="s1-spec" class="clip" data-start="1.9" data-duration="3.1">
+        SC16G · <b>14.84 GiB</b> · FAT32 · 31116288 × 512 B
+      </div>
+
+      <div id="s1-rule" class="clip" data-start="2.75" data-duration="2.25"></div>
+      <div id="s1-l3" class="clip" data-start="2.95" data-duration="2.05">
+        桌上还有一块 <b>ESP32-C6</b>
+      </div>
+
+      <div id="s1-foot" class="clip" data-start="3.3" data-duration="1.7">
+        WAVESHARE ESP32-C6-LCD-1.47
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+
+    // frame 0 must already read: the card is placed, not faded in
+    tl.fromTo(
+      "#s1-card .s1-shape",
+      { scale: 1.06, y: -14 },
+      { scale: 1, y: 0, duration: 0.85, ease: "expo.out" },
+      0,
+    );
+
+    // the second line arrives by wipe, not by slide
+    tl.fromTo(
+      "#s1-l2",
+      { clipPath: "inset(0 100% 0 0)", filter: "blur(0px)" },
+      { clipPath: "inset(0 0% 0 0)", duration: 0.42, ease: "expo.out" },
+      0.55,
+    );
+    // the strike is the gag: 读卡器 gets crossed out
+    tl.fromTo(
+      "#s1-strike",
+      { scaleX: 0 },
+      { scaleX: 1, duration: 0.16, ease: "power3.out" },
+      1.55,
+    );
+    tl.to("#s1-card .s1-shape", { opacity: 0.6, duration: 0.3, ease: "power2.out" }, 1.62);
+    tl.to("#s1-card .s1-shape", { opacity: 1, duration: 0.4, ease: "power2.out" }, 3.0);
+
+    tl.fromTo(
+      "#s1-spec",
+      { opacity: 0, filter: "blur(6px)" },
+      { opacity: 1, filter: "blur(0px)", duration: 0.22, ease: "power4.out" },
+      1.9,
+    );
+    tl.fromTo("#s1-rule", { scaleX: 0 }, { scaleX: 1, duration: 0.45, ease: "power2.inOut" }, 2.75);
+    tl.fromTo(
+      "#s1-l3",
+      { opacity: 0, filter: "blur(7px)" },
+      { opacity: 1, filter: "blur(0px)", duration: 0.26, ease: "power4.out" },
+      2.95,
+    );
+    tl.fromTo(
+      "#s1-foot",
+      { opacity: 0 },
+      { opacity: 1, duration: 0.3, ease: "power2.out" },
+      3.3,
+    );
+
+    window.__timelines["s1"] = tl;
+  </script>
+</template>

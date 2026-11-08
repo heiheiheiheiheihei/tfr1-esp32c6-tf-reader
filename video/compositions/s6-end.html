@@ -1,0 +1,137 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+    #s6-stage {
+      position: absolute;
+      inset: 0;
+    }
+    #s6-lockup {
+      position: absolute;
+      left: 0;
+      top: 356px;
+      width: 1920px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #s6-chip {
+      width: 30px;
+      height: 30px;
+      background: var(--accent);
+      margin-right: 26px;
+      flex: none;
+    }
+    #s6-markwrap {
+      position: relative;
+      height: 232px;
+      width: 584px;
+    }
+    .s6-mark {
+      position: absolute;
+      left: 0;
+      top: 0;
+      font-family: var(--mono);
+      font-weight: 700;
+      font-size: 210px;
+      line-height: 232px;
+      letter-spacing: -0.045em;
+      white-space: nowrap;
+    }
+    #s6-fill {
+      color: var(--ink);
+      clip-path: inset(100% 0 0 0);
+    }
+    #s6-sub {
+      position: absolute;
+      left: 0;
+      top: 632px;
+      width: 1920px;
+      text-align: center;
+      font-family: var(--mono);
+      font-size: 33px;
+      letter-spacing: 0.01em;
+      color: var(--dim);
+    }
+    #s6-sub b {
+      color: var(--ink);
+      font-weight: 400;
+    }
+    #s6-spec {
+      position: absolute;
+      left: 0;
+      top: 700px;
+      width: 1920px;
+      text-align: center;
+      font-family: var(--mono);
+      font-size: 26px;
+      letter-spacing: 0.1em;
+      color: rgba(124, 151, 168, 0.9);
+    }
+    #s6-line {
+      position: absolute;
+      left: 660px;
+      top: 590px;
+      width: 600px;
+      height: 1px;
+      background: rgba(53, 224, 255, 0.3);
+      transform-origin: center center;
+    }
+  </style>
+
+  <div
+    id="root"
+    data-composition-id="s6"
+    data-width="1920"
+    data-height="1080"
+    data-composition-variables='[{"id":"repo","type":"string","label":"仓库地址","default":"github.com/heiheiheiheiheihei/tfr1-esp32c6-tf-reader"}]'
+  >
+    <div class="bg"></div>
+    <div class="grid"></div>
+    <div class="vig"></div>
+
+    <div id="s6-stage">
+      <div id="s6-lockup" class="clip" data-start="0" data-duration="6">
+        <div id="s6-chip"></div>
+        <div id="s6-markwrap">
+          <div class="s6-mark" id="s6-fill">TFR-1</div>
+        </div>
+      </div>
+
+      <div id="s6-line" class="clip" data-start="1.2" data-duration="4.8"></div>
+
+      <div id="s6-sub" class="clip" data-start="1.45" data-duration="4.55">
+        <b data-var-text="repo">github.com/heiheiheiheiheihei/tfr1-esp32c6-tf-reader</b>
+      </div>
+      <div id="s6-spec" class="clip" data-start="1.95" data-duration="4.05">
+        ESP32-C6-LCD-1.47 · LVGL · USB CDC → NBD
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+
+    // the mark is filled from the bottom, not faded in
+    tl.fromTo(
+      "#s6-fill",
+      { clipPath: "inset(100% 0 0 0)" },
+      { clipPath: "inset(0% 0 0 0)", duration: 0.62, ease: "power3.out" },
+      0.06,
+    );
+    tl.fromTo("#s6-chip", { scale: 0 }, { scale: 1, duration: 0.3, ease: "back.out(1.8)" }, 0);
+    tl.fromTo("#s6-line", { scaleX: 0 }, { scaleX: 1, duration: 0.5, ease: "power2.inOut" }, 1.2);
+    tl.fromTo(
+      "#s6-sub",
+      { clipPath: "inset(0 100% 0 0)" },
+      { clipPath: "inset(0 0% 0 0)", duration: 0.5, ease: "expo.out" },
+      1.45,
+    );
+    tl.fromTo("#s6-spec", { opacity: 0 }, { opacity: 1, duration: 0.34 }, 1.95);
+
+    window.__timelines["s6"] = tl;
+  </script>
+</template>

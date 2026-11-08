@@ -1,0 +1,111 @@
+/* TFR-1 · shared look. Every scene links this sheet and adds only its own layout. */
+@font-face {
+  font-family: "NotoSC";
+  src: url("fonts/NotoSansSC-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: block;
+}
+@font-face {
+  font-family: "NotoSC";
+  src: url("fonts/NotoSansSC-Bold.woff2") format("woff2");
+  font-weight: 700 900;
+  font-display: block;
+}
+
+:root {
+  --ground: #050a12;
+  --field: #071320;
+  --panel: #0a1a2a;
+  --term: #01060b;
+  --ink: #d6ecf5;
+  --dim: #7c97a8;
+  --accent: #35e0ff;
+  --mint: #7cffb2;
+  --red: #ff5f56;
+  --sc: "NotoSC", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--ground);
+}
+
+.bg {
+  position: absolute;
+  inset: 0;
+  background: var(--ground);
+}
+
+.grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, rgba(53, 224, 255, 0.055) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(53, 224, 255, 0.055) 1px, transparent 1px);
+  background-size: 8px 8px;
+}
+
+.scan {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.05) 0 1px,
+    rgba(0, 0, 0, 0) 1px 3px
+  );
+}
+
+.vig {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    118% 88% at 50% 46%,
+    rgba(0, 0, 0, 0) 52%,
+    rgba(0, 0, 0, 0.58) 100%
+  );
+}
+
+.mono {
+  font-family: var(--mono);
+  font-variant-ligatures: none;
+  font-feature-settings: "zero" 0;
+}
+
+.lbl {
+  font-family: var(--mono);
+  font-size: 20px;
+  letter-spacing: 0.14em;
+  color: var(--dim);
+  text-transform: uppercase;
+}
+
+.zh {
+  font-family: var(--sc);
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+.rule {
+  position: absolute;
+  height: 1px;
+  background: rgba(53, 224, 255, 0.28);
+}
+
+.lcd {
+  image-rendering: pixelated;
+  display: block;
+}
+
+.shot {
+  display: block;
+  object-fit: cover;
+}

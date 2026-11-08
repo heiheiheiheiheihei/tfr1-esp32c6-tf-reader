@@ -1,0 +1,295 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+    #s4b-stage {
+      position: absolute;
+      inset: 0;
+    }
+    #s4b-head {
+      position: absolute;
+      left: 120px;
+      top: 196px;
+      font-family: var(--sc);
+      font-weight: 700;
+      font-size: 62px;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+    }
+    #s4b-head b {
+      color: var(--accent);
+      font-family: var(--mono);
+      font-weight: 400;
+      letter-spacing: 0;
+    }
+    #s4b-note {
+      position: absolute;
+      left: 124px;
+      top: 286px;
+      font-family: var(--mono);
+      font-size: 22px;
+      letter-spacing: 0.06em;
+      color: rgba(124, 151, 168, 0.95);
+    }
+
+    #s4b-frame {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1920px;
+      height: 1080px;
+      transform-origin: 1520px 470px;
+    }
+    .s4b-box {
+      position: absolute;
+      top: 516px;
+      height: 176px;
+      background: rgba(10, 26, 42, 0.92);
+      border: 1px solid rgba(53, 224, 255, 0.32);
+      padding: 14px 16px 0 16px;
+    }
+    .s4b-box span {
+      display: block;
+      font-family: var(--mono);
+      font-size: 21px;
+      letter-spacing: 0.14em;
+      color: rgba(124, 151, 168, 0.95);
+    }
+    .s4b-box b {
+      display: block;
+      margin-top: 12px;
+      font-family: var(--mono);
+      font-weight: 400;
+      font-size: 34px;
+      color: var(--ink);
+    }
+    #s4b-b7 b {
+      color: var(--accent);
+    }
+    #s4b-payload {
+      position: absolute;
+      left: 1436px;
+      top: 572px;
+      width: 44px;
+      height: 44px;
+      background: rgba(53, 224, 255, 0.18);
+      border: 1px solid rgba(53, 224, 255, 0.7);
+      background-image: radial-gradient(
+        circle,
+        rgba(53, 224, 255, 0.85) 1.1px,
+        rgba(0, 0, 0, 0) 1.6px
+      );
+      background-size: 5px 5px;
+      transform-origin: 50% 50%;
+    }
+    #s4b-flood {
+      position: absolute;
+      inset: 0;
+      background: var(--term);
+      opacity: 0;
+    }
+
+    /* ---- terminal ---- */
+    #s4b-term {
+      position: absolute;
+      left: 200px;
+      top: 300px;
+      width: 1520px;
+      height: 420px;
+      background: rgba(1, 6, 11, 0.94);
+      border: 1px solid rgba(53, 224, 255, 0.24);
+      padding: 34px 40px;
+      overflow: hidden;
+    }
+    #s4b-term-top {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 2px;
+      background: rgba(53, 224, 255, 0.55);
+    }
+    #s4b-term-tag {
+      position: absolute;
+      right: 40px;
+      top: 26px;
+      font-family: var(--mono);
+      font-size: 18px;
+      letter-spacing: 0.16em;
+      color: rgba(124, 151, 168, 0.8);
+    }
+    .s4b-ln {
+      font-family: var(--mono);
+      font-size: 36px;
+      line-height: 1.68;
+      color: var(--dim);
+      white-space: pre;
+    }
+    .s4b-ln.cmd {
+      color: var(--ink);
+    }
+    .s4b-ln.hi {
+      color: var(--accent);
+    }
+    .s4b-ln.dim {
+      color: rgba(124, 151, 168, 0.75);
+    }
+    #s4b-cap {
+      position: absolute;
+      left: 204px;
+      top: 790px;
+      font-family: var(--sc);
+      font-weight: 500;
+      font-size: 52px;
+      color: var(--ink);
+    }
+    #s4b-cap em {
+      font-style: normal;
+      color: var(--accent);
+      font-family: var(--mono);
+    }
+  </style>
+
+  <div id="root" data-composition-id="s4b" data-width="1920" data-height="1080">
+    <div class="bg"></div>
+    <div class="grid"></div>
+    <div class="vig"></div>
+
+    <div id="s4b-stage">
+      <div id="s4b-head" class="clip" data-start="0.06" data-duration="2.3">
+        装进一个 <b>TFR1</b> 帧
+      </div>
+      <div id="s4b-note" class="clip" data-start="0.3" data-duration="2.06">
+        magic · type · flags · seq · len · crc16 · payload
+      </div>
+
+      <div id="s4b-frame" class="clip" data-start="0.28" data-duration="2.06">
+        <div class="s4b-box" id="s4b-b1" style="left: 170px; width: 200px">
+          <span>MAGIC</span><b>"TFR1"</b>
+        </div>
+        <div class="s4b-box" id="s4b-b2" style="left: 380px; width: 170px">
+          <span>TYPE</span><b>0x10</b>
+        </div>
+        <div class="s4b-box" id="s4b-b3" style="left: 560px; width: 170px">
+          <span>FLAGS</span><b>0x00</b>
+        </div>
+        <div class="s4b-box" id="s4b-b4" style="left: 740px; width: 150px">
+          <span>SEQ</span><b>u16</b>
+        </div>
+        <div class="s4b-box" id="s4b-b5" style="left: 900px; width: 170px">
+          <span>LEN</span><b>512</b>
+        </div>
+        <div class="s4b-box" id="s4b-b6" style="left: 1080px; width: 200px">
+          <span>CRC16</span><b>CCITT</b>
+        </div>
+        <div class="s4b-box" id="s4b-b7" style="left: 1290px; width: 300px">
+          <span>PAYLOAD</span><b>512 B 扇区</b>
+        </div>
+        <div id="s4b-payload"></div>
+      </div>
+
+      <div id="s4b-flood" class="clip" data-start="2.1" data-duration="5.9"></div>
+
+      <div id="s4b-term" class="clip" data-start="2.55" data-duration="5.45">
+        <div id="s4b-term-top"></div>
+        <div id="s4b-term-tag">/dev/ttyACM0 → nbd</div>
+        <div class="s4b-ln cmd" id="s4b-t1"></div>
+        <div class="s4b-ln hi" id="s4b-t2"></div>
+        <div class="s4b-ln" id="s4b-t3"></div>
+        <div class="s4b-ln dim" id="s4b-t4"></div>
+      </div>
+
+      <div id="s4b-cap" class="clip" data-start="5.9" data-duration="2.1">
+        PC 这边多了一块 <em>14.84 GiB</em> 的盘
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+
+    function typeLine(sel, text, start, perChar) {
+      const el = document.querySelector(sel);
+      const o = { i: 0 };
+      el.textContent = "";
+      tl.to(
+        o,
+        {
+          i: text.length,
+          duration: Math.max(0.12, perChar * text.length),
+          ease: "none",
+          onUpdate: () => {
+            el.textContent = text.slice(0, Math.round(o.i));
+          },
+        },
+        start,
+      );
+    }
+
+    tl.fromTo(
+      "#s4b-head",
+      { opacity: 0, filter: "blur(6px)" },
+      { opacity: 1, filter: "blur(0px)", duration: 0.22, ease: "power4.out" },
+      0.06,
+    );
+    tl.fromTo("#s4b-note", { opacity: 0 }, { opacity: 1, duration: 0.26 }, 0.3);
+
+    const boxes = [
+      "#s4b-b1",
+      "#s4b-b2",
+      "#s4b-b3",
+      "#s4b-b4",
+      "#s4b-b5",
+      "#s4b-b6",
+      "#s4b-b7",
+    ];
+    boxes.forEach((sel, i) => {
+      tl.fromTo(
+        sel,
+        { opacity: 0, y: 18 },
+        { opacity: 1, y: 0, duration: 0.3, ease: "expo.out" },
+        0.32 + i * 0.075,
+      );
+    });
+    tl.fromTo(
+      "#s4b-payload",
+      { opacity: 0, scale: 0.4 },
+      { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(1.8)" },
+      1.3,
+    );
+
+    // the frame shrinks and leaves along the cable, then the screen goes to the host side
+    tl.to("#s4b-head", { opacity: 0, duration: 0.18 }, 1.98);
+    tl.to("#s4b-note", { opacity: 0, duration: 0.18 }, 1.98);
+    tl.to(
+      "#s4b-frame",
+      { scale: 0.42, x: 420, opacity: 0, duration: 0.5, ease: "power3.in" },
+      2.0,
+    );
+    tl.to("#s4b-flood", { opacity: 1, duration: 0.35, ease: "power2.inOut" }, 2.1);
+
+    tl.fromTo(
+      "#s4b-term",
+      { opacity: 0, y: 26 },
+      { opacity: 1, y: 0, duration: 0.4, ease: "expo.out" },
+      2.55,
+    );
+
+    typeLine("#s4b-t1", "$ ./scripts/run.sh", 2.8, 0.032);
+    typeLine("#s4b-t2", "[nbd] attached /dev/nbd0  14.84 GiB", 3.35, 0.016);
+    typeLine("#s4b-t3", "[nbd] export /dev/nbd0  sector size 512", 4.1, 0.014);
+    typeLine("#s4b-t4", "[nbd] mount: sudo mount /dev/nbd0p1 /mnt/tfreader", 4.95, 0.013);
+
+    tl.fromTo(
+      "#s4b-cap",
+      { opacity: 0, filter: "blur(8px)" },
+      { opacity: 1, filter: "blur(0px)", duration: 0.26, ease: "power4.out" },
+      5.9,
+    );
+
+    window.__timelines["s4b"] = tl;
+  </script>
+</template>

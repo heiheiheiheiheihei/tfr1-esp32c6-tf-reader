@@ -9,3 +9,8 @@ managed_components/
 __pycache__/
 *.pyc
 .venv/
+
+# video project build artifacts and renders
+video/.hyperframes/
+video/renders/
+video/node_modules/
