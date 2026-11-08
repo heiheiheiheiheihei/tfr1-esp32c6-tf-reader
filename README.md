@@ -126,6 +126,20 @@ python3 host/tfreader_host.py --ui-page 2 --screenshot docs/ui-link.png
 
 判定是**只读**的：读 LBA 0、容量中点、末尾前 16 扇区，三者内容完全相同且不是全 `0x00`/`0xFF` 才判 `FAULT`，不会写卡、不会误伤空白卡。诊断信息同时写进设备日志：`--logs` 可见 `mount failed ESP_FAIL; raw card 59638 MB (FAULT: all LBAs alias)`。
 
+### 强制导出 / 格式化尝试（诊断用）
+
+默认 `--attach` 拒绝导出 FAULT 卡，避免 PC 端写入被静默别名。确实要做诊断或格式化尝试时，需显式加 `--force`：
+
+```bash
+sudo python3 host/tfreader_host.py --attach --force   # 终端 A：导出 /dev/nbd0
+sudo mkfs.vfat -F 32 -n TFRFIX /dev/nbd0              # 终端 B
+sudo mount -t vfat /dev/nbd0 /mnt/tfreader
+```
+
+这**不是修复**。本项目的 64 GB `SDABC` 假卡实测：`mkfs.vfat` 返回 0、写入约 9.5 MB，
+但挂载仍报 `invalid media value (0x5c)`；重新初始化后 LBA 0 仍读不到引导扇区。
+问题在块地址而非文件系统，格式化“成功”不会让 FAULT 消失。
+
 ## 目录
 
 ```

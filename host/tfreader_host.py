@@ -558,6 +558,25 @@ def detach_nbd(fd: int, pid: int, dev_path: str) -> None:
     print(f"[nbd] detached {dev_path}")
 
 
+def check_export_allowed(info: dict, force: bool) -> None:
+    """Gate the NBD export on the block-level self-test.
+
+    A FAULT card aliases every LBA to one block, so a PC writing to it would
+    silently corrupt whatever it thinks it stored.  Refuse by default; --force
+    is the explicit, user-requested override for diagnosis (format/fsck
+    attempts), and it never turns itself on."""
+    if not info.get("fault"):
+        return
+    if not force:
+        raise LinkError(
+            "card data path is broken (block-level self-test failed: distant "
+            "LBAs read back identical data); refusing to export it over NBD "
+            "(use --force to override for diagnostics)")
+    print("warning: exporting a FAULT card; every LBA aliases to one block "
+          "and writes are not persisted -- data on it is unrecoverable",
+          file=sys.stderr)
+
+
 def print_info(link: SerialLink) -> None:
     h = link.hello()
     i = link.info()
@@ -609,7 +628,11 @@ def main() -> int:
     ap.add_argument("--bench", type=int, metavar="MIB")
     ap.add_argument("--screenshot", metavar="PATH", help="capture the LCD as PNG")
     ap.add_argument("--ui-page", type=int, choices=(0, 1, 2), help="switch UI page before screenshot")
+    ap.add_argument("--force", action="store_true",
+                    help="export even when the FAULT self-test fails (diagnostics only)")
     args = ap.parse_args()
+    if args.force and not args.attach:
+        ap.error("--force is only meaningful with --attach")
 
     link = SerialLink(args.port)
     try:
@@ -644,12 +667,7 @@ def main() -> int:
         info = link.info()
         if not info["present"]:
             raise LinkError("no TF card inserted")
-        if info.get("fault"):
-            # Every LBA aliases to one block: exporting it would silently
-            # corrupt anything the PC writes, and no data can be recovered.
-            raise LinkError(
-                "card data path is broken (block-level self-test failed: distant "
-                "LBAs read back identical data); refusing to export it over NBD")
+        check_export_allowed(info, args.force)
         if not info["mounted"]:
             print(f"note: {info['fs'] or 'unknown'} filesystem on board; "
                   "exporting raw blocks for the PC to mount", file=sys.stderr)
@@ -666,6 +684,9 @@ def main() -> int:
             capture_screen(link, args.screenshot)
         print(f"[nbd] next: sudo partprobe {dev} && lsblk {dev}")
         print(f"[nbd] mount: sudo mount {dev}p1 /mnt/tfreader   (or {dev} for a superfloppy)")
+        if info.get("fault"):
+            print(f"[nbd] FAULT override: a format attempt is still explicit and usually "
+                  f"futile, e.g. sudo mkfs.vfat -F 32 {dev}", file=sys.stderr)
         stop = {"v": False}
 
         def on_signal(signum, frame):
