@@ -94,6 +94,7 @@ typedef struct __attribute__((packed)) {
     char product[9];
     char fs[8];
     char label[16];
+    uint8_t fault;      /* block-level data path unusable (all LBAs alias) */
 } tfr_info_t;
 
 typedef struct __attribute__((packed)) {
@@ -134,10 +135,17 @@ void usb_log(const char *fmt, ...)
     if (n < 0) return;
     if (n > (int)sizeof(tmp) - 1) n = sizeof(tmp) - 1;
     taskENTER_CRITICAL(&s_log_mux);
+    /* Keep the newest text: drop the oldest bytes instead of going silent
+     * once the buffer is full (the card monitor retries every 1.5 s). */
     size_t space = sizeof(s_log) - s_log_len;
-    size_t copy = (size_t)n < space ? (size_t)n : space;
-    memcpy(s_log + s_log_len, tmp, copy);
-    s_log_len += copy;
+    if ((size_t)n > space) {
+        size_t drop = (size_t)n - space;
+        if (drop > s_log_len) drop = s_log_len;
+        memmove(s_log, s_log + drop, s_log_len - drop);
+        s_log_len -= drop;
+    }
+    memcpy(s_log + s_log_len, tmp, (size_t)n);
+    s_log_len += (size_t)n;
     taskEXIT_CRITICAL(&s_log_mux);
 }
 
@@ -253,9 +261,13 @@ static void host_release(void)
     s_host_active = false;
     state_set_host(false);
     const card_info_t *info = sd_card_info();
-    state_set_card(info, sd_card_is_mounted(), sd_card_is_mounted());
-    files_request_scan();
-    rgb_set_state(sd_card_is_mounted() ? RGB_CARD : RGB_IDLE);
+    bool mounted = sd_card_is_mounted();
+    bool present = info && info->present;
+    state_set_card(info, present, mounted);
+    if (mounted) {
+        files_request_scan();
+    }
+    rgb_set_state(mounted ? RGB_CARD : present ? RGB_ERROR : RGB_IDLE);
     usb_log("host released");
 }
 
@@ -288,7 +300,7 @@ static void handle_frame(const tfr_hdr_t *h, const uint8_t *payload)
             .flags = 0,
             .sectors = 0,
         };
-        if (sd_card_is_mounted() || sd_card_host_active()) {
+        if (sd_card_is_present() || sd_card_host_active()) {
             const card_info_t *i = sd_card_info();
             r.sectors = i->sector_count;
             r.sector_size = i->sector_size;
@@ -315,7 +327,9 @@ static void handle_frame(const tfr_hdr_t *h, const uint8_t *payload)
         r.year = st.info.cid_year;
         r.month = st.info.cid_month;
         memcpy(r.product, st.info.product, 8);
-        memcpy(r.fs, st.info.fs_type[0] ? st.info.fs_type : "FAT", 3);
+        const char *fsname = st.info.fs_type[0] ? st.info.fs_type : "FAT";
+        snprintf(r.fs, sizeof(r.fs), "%s", fsname);
+        r.fault = st.info.fault ? 1 : 0;
         send_frame(RESP_INFO, 0, h->seq, &r, sizeof(r));
         break;
     }
@@ -394,7 +408,7 @@ static void handle_frame(const tfr_hdr_t *h, const uint8_t *payload)
             .write_ops = s_write_ops,
             .errors = 0,
             .host_active = s_host_active,
-            .card_present = sd_card_is_mounted() || sd_card_host_active(),
+            .card_present = sd_card_is_present(),
             .free_heap = esp_get_free_heap_size(),
             .min_heap = esp_get_minimum_free_heap_size(),
             .tx_errors = s_tx_errors,

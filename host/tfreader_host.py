@@ -206,6 +206,8 @@ class SerialLink:
         out["product"] = out["product"].split(b"\0", 1)[0].decode("ascii", "replace")
         out["fs"] = out["fs"].split(b"\0", 1)[0].decode("ascii", "replace")
         out["label"] = out["label"].split(b"\0", 1)[0].decode("ascii", "replace")
+        # Appended after the original 97-byte layout; older firmware omits it.
+        out["fault"] = data[97] if len(data) > 97 else 0
         return out
 
     def host(self, enable: bool) -> None:
@@ -566,7 +568,11 @@ def print_info(link: SerialLink) -> None:
     if i["present"]:
         print(f"model  {i['product']}   serial 0x{i['serial']:08X}   {i['year']}-{i['month']:02d}")
         print(f"size   {fmt_bytes(i['capacity'])} ({i['sector_count']} x {i['sector_size']} B)")
-        print(f"fs     {i['fs']}   free {fmt_bytes(i['free'])} / {fmt_bytes(i['total'])}")
+        fs = i["fs"] if i["mounted"] else f"{i['fs'] or 'RAW'} (unmounted)"
+        print(f"fs     {fs}   free {fmt_bytes(i['free'])} / {fmt_bytes(i['total'])}")
+        if i["fault"]:
+            print("fault  block-level self-test FAILED: distant LBAs read back "
+                  "identical data; card is unusable (fake/defective)")
 
 
 def bench(link: SerialLink, mib: int) -> None:
@@ -638,6 +644,15 @@ def main() -> int:
         info = link.info()
         if not info["present"]:
             raise LinkError("no TF card inserted")
+        if info.get("fault"):
+            # Every LBA aliases to one block: exporting it would silently
+            # corrupt anything the PC writes, and no data can be recovered.
+            raise LinkError(
+                "card data path is broken (block-level self-test failed: distant "
+                "LBAs read back identical data); refusing to export it over NBD")
+        if not info["mounted"]:
+            print(f"note: {info['fs'] or 'unknown'} filesystem on board; "
+                  "exporting raw blocks for the PC to mount", file=sys.stderr)
         h = link.hello()
         if h["sectors"] == 0:
             raise LinkError("device reports zero sectors")

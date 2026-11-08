@@ -21,13 +21,18 @@ static void publish(bool present)
         const card_info_t *p = sd_card_info();
         if (p) info = *p;
     }
-    state_set_card(present ? &info : NULL, present, sd_card_is_mounted());
-    if (present) {
-        files_request_scan();
-        rgb_set_state(RGB_CARD);
-    } else {
+    bool mounted = sd_card_is_mounted();
+    state_set_card(present ? &info : NULL, present, mounted);
+    if (!present) {
         state_set_counts(0, 0);
         rgb_set_state(RGB_IDLE);
+    } else if (!mounted) {
+        /* Card answers at block level but has no filesystem we can read
+         * (exFAT/NTFS/unformatted) or its data path is broken. */
+        rgb_set_state(RGB_ERROR);
+    } else {
+        files_request_scan();
+        rgb_set_state(RGB_CARD);
     }
 }
 
@@ -58,13 +63,14 @@ static void monitor_task(void *arg)
             }
         } else {
             esp_err_t err = sd_card_mount();
+            bool present = sd_card_is_present();
             if (err == ESP_OK) {
                 ESP_LOGI(TAG, "card mounted");
                 publish(true);
                 last_present = true;
-            } else if (last_present) {
-                publish(false);
-                last_present = false;
+            } else if (present != last_present) {
+                publish(present);
+                last_present = present;
             }
         }
         vTaskDelay(pdMS_TO_TICKS(1500));

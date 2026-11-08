@@ -22,11 +22,15 @@ typedef struct {
     char product[9];
     char fs_type[8];
     char label[16];
+    /* Block-level data path looks unusable (e.g. every LBA aliases to one block). */
+    bool fault;
 } card_info_t;
 
 esp_err_t sd_card_mount(void);
 void sd_card_unmount(void);
 bool sd_card_is_mounted(void);
+/* Card answers at block level, even when FATFS cannot mount it. */
+bool sd_card_is_present(void);
 esp_err_t sd_card_check(void);
 void sd_card_lock(void);
 void sd_card_unlock(void);

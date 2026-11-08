@@ -324,8 +324,10 @@ static void refresh_ui(void)
     bool card = st.card_present;
     uint64_t total = st.total_bytes ? st.total_bytes : st.info.capacity_bytes;
     uint64_t freeb = st.total_bytes ? st.free_bytes : 0;
-    uint64_t used = total > freeb ? total - freeb : 0;
-    int pct = total ? (int)((used * 100) / total) : 0;
+    /* Usage is only meaningful with a mounted filesystem; a card that is
+     * present but unreadable must not render as "100% used". */
+    uint64_t used = (st.fs_mounted && total > freeb) ? total - freeb : 0;
+    int pct = (st.fs_mounted && total) ? (int)((used * 100) / total) : 0;
     if (pct > 100) pct = 100;
 
     lv_arc_set_value(s_arc, pct * 10);
@@ -340,21 +342,35 @@ static void refresh_ui(void)
         lv_label_set_text(s_product, st.info.product[0] ? st.info.product : "TF MEDIA");
         const char *ctype = st.info.capacity_bytes > (uint64_t)32 * 1024 * 1024 * 1024 ? "SDXC"
                           : st.info.capacity_bytes > (uint64_t)2 * 1024 * 1024 * 1024 ? "SDHC" : "SDSC";
-        const char *fs = total > (uint64_t)32 * 1024 * 1024 * 1024 ? "exFAT" : "FAT32";
+        const char *fs;
+        uint32_t fs_color;
+        if (st.fs_mounted) {
+            fs = st.info.fs_type[0] ? st.info.fs_type : "FAT";
+            fs_color = C_MUTED;
+        } else if (st.info.fault) {
+            fs = "FAULT";
+            fs_color = C_RED;
+        } else {
+            fs = "NO FS";
+            fs_color = C_AMBER;
+        }
         lv_label_set_text_fmt(s_media_type, "%s  /  %s", ctype, fs);
+        lv_obj_set_style_text_color(s_media_type, lv_color_hex(fs_color), 0);
     } else {
         lv_label_set_text(s_product, "NO MEDIA");
         lv_label_set_text(s_media_type, "INSERT TF CARD");
+        lv_obj_set_style_text_color(s_media_type, lv_color_hex(C_MUTED), 0);
     }
 
     fmt_bytes(total, b1, sizeof(b1));
     fmt_bytes(freeb, b2, sizeof(b2));
     lv_label_set_text(s_v_capacity, b1);
-    lv_label_set_text(s_v_free, card ? b2 : "--");
+    lv_label_set_text(s_v_free, st.fs_mounted ? b2 : "--");
     lv_label_set_text(s_v_bus, "20 MHz");
     lv_label_set_text_fmt(s_v_serial, "0x%08lX", (unsigned long)st.info.cid_serial);
 
-    uint32_t dot_color = host ? C_MINT : card ? C_CYAN : C_AMBER;
+    uint32_t dot_color = host ? C_MINT : st.fs_mounted ? C_CYAN
+                       : card ? (st.info.fault ? C_RED : C_AMBER) : C_AMBER;
     lv_obj_set_style_bg_color(s_status_dot, lv_color_hex(dot_color), 0);
     lv_obj_set_style_bg_color(s_usb_dot, lv_color_hex(host ? C_MINT : C_DIM), 0);
     lv_label_set_text(s_usb_txt, host ? "ON" : "USB");
@@ -369,11 +385,18 @@ static void refresh_ui(void)
         lv_obj_set_style_text_color(s_link_state, lv_color_hex(C_MINT), 0);
         lv_label_set_text(s_link_sub, "CARD LOCKED BY PC");
         set_chip(s_link_chip, "LINK", C_MINT);
-    } else if (card) {
+    } else if (card && st.fs_mounted) {
         lv_label_set_text(s_link_state, "READY");
         lv_obj_set_style_text_color(s_link_state, lv_color_hex(C_TEXT), 0);
         lv_label_set_text(s_link_sub, "NBD /dev/nbd0");
         set_chip(s_link_chip, "IDLE", C_DIM);
+    } else if (card) {
+        lv_label_set_text(s_link_state, st.info.fault ? "FAULT" : "NO FS");
+        lv_obj_set_style_text_color(s_link_state,
+                                    lv_color_hex(st.info.fault ? C_RED : C_AMBER), 0);
+        lv_label_set_text(s_link_sub, st.info.fault ? "DATA PATH BROKEN" : "FAT32 ONLY");
+        set_chip(s_link_chip, st.info.fault ? "FAULT" : "RAW",
+                 st.info.fault ? C_RED : C_AMBER);
     } else {
         lv_label_set_text(s_link_state, "NO CARD");
         lv_obj_set_style_text_color(s_link_state, lv_color_hex(C_AMBER), 0);

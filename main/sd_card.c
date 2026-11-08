@@ -12,6 +12,7 @@
 
 #include "board.h"
 #include "spi_guard.h"
+#include "usb_link.h"
 
 static const char *TAG = "sd";
 static SemaphoreHandle_t s_lock;
@@ -36,9 +37,10 @@ static void info_from_card(sdmmc_card_t *card, bool mounted)
     s_info.cid_year = 2000 + ((card->cid.date >> 4) & 0xff);
     s_info.cid_month = card->cid.date & 0x0f;
     snprintf(s_info.product, sizeof(s_info.product), "%.8s", card->cid.name);
-    if (s_info.fs_type[0] == 0) {
+    if (mounted) {
         snprintf(s_info.fs_type, sizeof(s_info.fs_type), "FAT");
     }
+    s_info.fault = false;
 }
 
 static void fill_fs_info(void)
@@ -52,6 +54,73 @@ static void fill_fs_info(void)
         s_info.total_bytes = s_info.capacity_bytes;
         s_info.free_bytes = 0;
     }
+}
+
+/* Read-only data-path self-test.
+ *
+ * Three widely separated sectors are compared.  A healthy card returns
+ * different content (or blank).  Counterfeit / defective cards whose
+ * controller ignores the address bits return the very same block for every
+ * LBA -- the failure mode that leaves sdmmc_card_init() happy while FATFS
+ * cannot mount and nothing else reports why.
+ *
+ * Static buffer: the whole SD path runs under s_lock, and the card monitor
+ * task only has a 4 KiB stack. */
+static bool data_path_aliased(sdmmc_card_t *card)
+{
+    uint32_t n = card->csd.capacity;
+    if (n < 64) return false;
+    static uint8_t blk[3][512];
+    const uint32_t lbas[3] = { 0, n / 2, n - 16 };
+
+    for (int i = 0; i < 3; i++) {
+        if (sdmmc_read_sectors(card, blk[i], lbas[i], 1) != ESP_OK) return false;
+    }
+    if (memcmp(blk[0], blk[1], 512) != 0 || memcmp(blk[0], blk[2], 512) != 0) {
+        return false;
+    }
+    /* all-0x00 / all-0xFF is a legitimately blank card, not aliasing */
+    for (int i = 0; i < 512; i++) {
+        if (blk[0][i] != 0x00 && blk[0][i] != 0xFF) return true;
+    }
+    return false;
+}
+
+/* Re-open the card at block level, without FATFS.
+ *
+ * esp_vfs_fat_sdspi_mount() releases the card and the sdspi slot when the
+ * filesystem cannot be mounted, so presence, CID/CSD and the data-path check
+ * have to be recovered here. */
+static esp_err_t probe_locked(void)
+{
+    sdmmc_host_t host = SDSPI_HOST_DEFAULT();
+    host.slot = LCD_HOST;
+    host.max_freq_khz = 20000;
+
+    sdspi_device_config_t slot_config = SDSPI_DEVICE_CONFIG_DEFAULT();
+    slot_config.gpio_cs = PIN_SD_CS;
+    slot_config.host_id = LCD_HOST;
+
+    sdspi_dev_handle_t handle;
+    esp_err_t err = sdspi_host_init_device(&slot_config, &handle);
+    if (err != ESP_OK) return err;
+
+    sdmmc_card_t *card = calloc(1, sizeof(sdmmc_card_t));
+    if (!card) {
+        sdspi_host_remove_device(handle);
+        return ESP_ERR_NO_MEM;
+    }
+
+    host.slot = handle;
+    err = sdmmc_card_init(&host, card);
+    if (err == ESP_OK) {
+        info_from_card(card, false);
+        s_info.fault = data_path_aliased(card);
+        snprintf(s_info.fs_type, sizeof(s_info.fs_type), "RAW");
+    }
+    free(card);
+    sdspi_host_remove_device(handle);
+    return err;
 }
 
 static esp_err_t mount_locked(void)
@@ -83,7 +152,24 @@ static esp_err_t mount_locked(void)
         s_mounted = false;
         s_info.present = false;
         s_info.mounted = false;
-        ESP_LOGW(TAG, "mount failed: %s", esp_err_to_name(err));
+        s_info.fault = false;
+        s_info.fs_type[0] = 0;
+        s_info.total_bytes = 0;
+        s_info.free_bytes = 0;
+        /* FATFS rejects exFAT/NTFS/unformatted media with ESP_FAIL after the
+         * card answered fine, so presence is decided by a block-level probe
+         * instead of by the mount result. */
+        esp_err_t perr = probe_locked();
+        if (perr == ESP_OK) {
+            usb_log("mount failed %s; raw card %u MB%s", esp_err_to_name(err),
+                    (unsigned)(s_info.capacity_bytes / (1024 * 1024)),
+                    s_info.fault ? " (FAULT: all LBAs alias)" : "");
+        } else {
+            usb_log("no card: mount %s, probe %s", esp_err_to_name(err),
+                    esp_err_to_name(perr));
+        }
+        ESP_LOGW(TAG, "mount failed: %s (probe %s)", esp_err_to_name(err),
+                 esp_err_to_name(perr));
         return err;
     }
 
@@ -192,6 +278,15 @@ bool sd_card_is_mounted(void)
     card_lock_init();
     xSemaphoreTake(s_lock, portMAX_DELAY);
     bool v = s_mounted;
+    xSemaphoreGive(s_lock);
+    return v;
+}
+
+bool sd_card_is_present(void)
+{
+    card_lock_init();
+    xSemaphoreTake(s_lock, portMAX_DELAY);
+    bool v = s_info.present;
     xSemaphoreGive(s_lock);
     return v;
 }
