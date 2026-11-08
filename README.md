@@ -16,6 +16,8 @@ Waveshare **ESP32-C6-LCD-1.47** 的个人 DIY 项目：1.47" 屏幕显示 TF 卡
 ![LINK](docs/ui-link.png)
 ![HOST](docs/ui-host.png)
 
+异常卡的两个状态（64 GB 无牌假卡实测）：[CARD / FAULT](docs/ui-card-fault.png) · [LINK / FAULT](docs/ui-link-fault.png)
+
 ## 先说清楚：它不是“真 USB 读卡器”
 
 ESP32-C6 只有 **USB Serial/JTAG（12 Mbps）**，没有 USB OTG，因此**无法枚举成 USB Mass Storage 盘符**。本项目用 USB CDC 跑一条自定义块协议，再由 Linux 主机上的 `tfreader_host.py` 通过内核 **NBD** 暴露成块设备。这是当前硬件下最接近“真读卡器”的做法。
@@ -30,9 +32,10 @@ ESP32-C6 只有 **USB Serial/JTAG（12 Mbps）**，没有 USB OTG，因此**无�
 ## 功能
 
 - 172×320 竖屏，深色仪表盘风格：容量环、卡型号/CID、FAT 信息、20 MHz 总线、实时读写速率与 30 秒 I/O 曲线；
+- 卡状态区分：`无卡` / `NO FS`（卡在，但 FATFS 读不了 exFAT/NTFS/未格式化）/ `FAULT`（卡在，但块级自检发现所有地址读回同一块）。后两者仍显示真实容量与 CID，不再误报为"没插卡"；
 - 根目录文件列表（目录优先，隐藏 `SYSTEM~1` 等系统项），文件大小与类型；
-- USB 链路页：`READY / ONLINE`、`NBD /dev/nbd0`、会话读/写量、错误计数；
-- RGB 灯：待机深蓝、有卡青色、主机模式薄荷绿、错误红色；
+- USB 链路页：`READY / ONLINE`、`NBD /dev/nbd0`、会话读/写量、错误计数；卡异常时显示 `NO FS` / `FAULT`；
+- RGB 灯：待机深蓝、有卡青色、主机模式薄荷绿、卡异常红色；
 - BOOT 键：短按切页/翻文件页，长按重新扫描；
 - 屏幕截图：主机端可把当前 UI 抓成 PNG（调试/文档用）。
 
@@ -113,6 +116,16 @@ python3 host/tfreader_host.py --ui-page 2 --screenshot docs/ui-link.png
 | 空闲堆 | 约 **151 KB**（截图缓冲释放后） |
 | 挂载 / 卸载耗时 | 本卡约 **7 s / 37 s**（16 GB FAT32；内核会读约 10 MB FAT 元数据，属带宽瓶颈，不是卡死） |
 
+### 卡兼容性 / 故障判定
+
+| 卡 | 结果 |
+|---|---|
+| 16 GB SC16G（FAT32） | 挂载、文件列表、1 MiB 直读 0.20 MiB/s、NBD 全通过 |
+| 64 GB 无牌卡 `SDABC` | **FAULT**：`sdmmc_card_init` 通过、CSD 报 58.24 GiB，但任意 LBA 都读回同一 512 B 块（前 4 字节固定、其后为最后一次写入内容），FATFS 无法挂载 → 判定为假容量/损坏卡 |
+| exFAT / NTFS / 未格式化 | `NO FS`：卡被识别并显示容量，但 FATFS 只支持 FAT12/16/32，需要格式化或在 PC 端经 NBD 挂载 |
+
+判定是**只读**的：读 LBA 0、容量中点、末尾前 16 扇区，三者内容完全相同且不是全 `0x00`/`0xFF` 才判 `FAULT`，不会写卡、不会误伤空白卡。诊断信息同时写进设备日志：`--logs` 可见 `mount failed ESP_FAIL; raw card 59638 MB (FAULT: all LBAs alias)`。
+
 ## 目录
 
 ```
@@ -136,11 +149,13 @@ docs/                设计说明与 UI 截图
 - USB 帧协议、NBD attach、分区识别、vfat 挂载；
 - 4 MiB 顺序读、128 KiB 写 + SHA-256 回读；
 - 三页 UI 与主机模式 UI（截图）；
-- Ctrl-C detach 后板端重新挂载。
+- Ctrl-C detach 后板端重新挂载；
+- 卡状态区分（`NO FS` 显示真实容量、`FAULT` 只读自检）——用一张 64 GB 无牌假卡实测；
+- 换卡对照：同一固件、同一卡座，16 GB SC16G 正常挂载，64 GB `SDABC` 判 `FAULT`。
 
 **未验证 / 已知限制**
 
-- exFAT / NTFS / ext4 卡；本项目只验证了 FAT32；
+- exFAT / NTFS / ext4 卡仍不能挂载（会显示 `NO FS`）；本项目只实现了 FAT12/16/32；
 - 热插拔（运行中拔卡）的主机错误恢复；
 - Windows / macOS 主机（NBD 方案主要面向 Linux）；
 - 长时间（>8 MiB）连续读写的稳定性与发热；

@@ -79,10 +79,39 @@ core dump 的崩溃任务为 `usb_link`，栈顶在 `sdspi_host_start_command ->
 - 16 GB FAT32 的 mount/umount 会触发约 10 MB FAT 元数据读取；在 0.25 MB/s 下表现为约 7 s / 37 s，属于带宽限制，不是 NBD 死锁（`TFR_VERBOSE=1` 可看到 256 KiB 顺序读请求）。
 - 每次 `send_frame` 后调用 `usb_serial_jtag_wait_tx_done()`；不等待会出现约 2 MiB 后帧尾丢失/主机超时。
 
-## 7. 后续可做
+## 7. 卡状态判定：无卡 / NO FS / FAULT
+
+原实现把 `esp_vfs_fat_sdspi_mount()` 失败一律当成"没有卡"（`s_info.present = false`），
+于是三种完全不同的状态在 UI 上都是 `INSERT TF CARD`：
+
+| 现实状态 | mount 返回 | 旧行为 | 现行为 |
+|---|---|---|---|
+| 真没插卡 | `ESP_ERR_TIMEOUT` / `ESP_ERR_INVALID_RESPONSE` | 无卡 | 无卡 |
+| 卡在，但 exFAT/NTFS/未格式化 | `ESP_FAIL`（`s_f_mount` 在 `f_mount` 失败后返回） | **无卡（错）** | `NO FS` + 真实容量 |
+| 卡在，但数据通路坏（假卡/坏卡） | `ESP_FAIL` | **无卡（错）** | `FAULT` + 真实容量 |
+
+**判定方式**：mount 失败后不再相信 mount 的返回值，而是重新做一次**块级探针**
+（`sdspi_host_init_device` + `sdmmc_card_init`，不挂 FATFS），由探针成功与否决定"卡在不在"。
+探针顺带拿到 CSD/CID，所以 `NO FS` / `FAULT` 状态仍能显示容量、型号、序列号。
+探针结束后立刻 `sdspi_host_remove_device()`，保持"同一时刻只有一个 SD 设备占用 CS"的不变量。
+
+**FAULT 只读自检**：读 LBA `0`、`capacity/2`、`capacity-16` 三个扇区，三者完全相同且不是
+全 `0x00`/`0xFF` 才判定为地址别名（假容量卡）。空白卡、正常卡都不会误报；全程只读。
+
+**Avoided Misfix**：
+
+- 不把 `ESP_FAIL` 直接当"卡在"——`ESP_FAIL` 也可能来自 mount 内部其它失败，只有探针成功才算数；
+- 不做"写一个测试扇区再回读"的判定——会破坏用户数据，尤其在卡上有 exFAT 照片时；
+- 不为这张卡加 exFAT 补丁——假卡的故障在块层，换文件系统驱动也不会变好；
+- 不把 `FAULT` 自动格式化——假卡格式化会"成功"但数据仍然写到同一块。
+
+**代价**：无卡时每 1.5 s 多一次 `sdmmc_card_init`（数毫秒）；卡异常时每 1.5 s 多 3 次扇区读。
+两者都远小于一次 mount 尝试。
+
+## 8. 后续可做
 
 - 文件级 FUSE 模式（不锁卡，但不能格式化）；
-- exFAT 支持与大容量卡验证；
+- exFAT 支持与大容量卡验证（`NO FS` 状态已经能正确提示，缺的是驱动）；
 - NBD 多队列/批量读，提升吞吐；
 - 把 8 s 心跳改为 USB SOF 连接状态 + 显式 detach；
 - 外壳与磁吸/支架。
