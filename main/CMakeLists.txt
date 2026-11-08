@@ -1,0 +1,27 @@
+idf_component_register(
+    SRCS
+        "app_main.c"
+        "display/display.c"
+        "display/Vernon_ST7789T.c"
+        "sd_card.c"
+        "app_state.c"
+        "files.c"
+        "button.c"
+        "rgb.c"
+        "ui.c"
+        "card_monitor.c"
+        "usb_link.c"
+        "spi_guard.c"
+    INCLUDE_DIRS
+        "."
+        "display"
+    REQUIRES
+        driver
+        esp_lcd
+        fatfs
+        sdmmc
+        esp_timer
+        lvgl__lvgl
+        espressif__led_strip
+        esp_driver_usb_serial_jtag
+)
